@@ -28,6 +28,9 @@ import java.io.FileInputStream
  * "key_$_foreground_service". The profile can use either the raw key string or
  * a short alias from the key alias table (e.g. "foreground_service").
  *
+ * For ListPreference-style keys, the value can be either the internal key string
+ * (e.g. "key_$_timed_task_backend_alarm") or a human-readable alias (e.g. "alarm").
+ *
  * Example profile:
  * {
  *   "foreground_service": true,
@@ -36,6 +39,7 @@ import java.io.FileInputStream
  *   "stable_mode": true,
  *   "guard_mode": true,
  *   "restart_strategy": "quick",
+ *   "timed_task_backend": "alarm",
  *   "file_extensions": "show_all"
  * }
  */
@@ -81,6 +85,85 @@ object FleetProfileApplier {
             "gesture_observing" to key(R.string.key_gesture_observing),
             "launcher_icon" to key(R.string.key_launcher_icon),
             "keep_screen_on_when_in_foreground" to key(R.string.key_keep_screen_on_when_in_foreground),
+        )
+    }
+
+    /**
+     * For ListPreference-style keys, the stored value must be one of the internal
+     * key strings (e.g. "key_$_timed_task_backend_alarm"). Fleet profiles are meant
+     * to be human-readable, so we also accept short aliases like "alarm" and map
+     * them to the real key strings.
+     */
+    private val valueAliasToKey by lazy {
+        mapOf(
+            key(R.string.key_timed_task_backend) to mapOf(
+                "alarm" to key(R.string.key_timed_task_backend_alarm),
+                "work" to key(R.string.key_timed_task_backend_work),
+                "job" to key(R.string.key_timed_task_backend_job),
+            ),
+            key(R.string.key_scheduled_restart_backend) to mapOf(
+                "alarm_manager" to key(R.string.key_scheduled_restart_backend_alarm_manager),
+                "work_manager" to key(R.string.key_scheduled_restart_backend_work_manager),
+            ),
+            key(R.string.key_restart_strategy) to mapOf(
+                "quick" to key(R.string.key_restart_strategy_quick),
+                "scheduled" to key(R.string.key_restart_strategy_scheduled),
+            ),
+            key(R.string.key_night_mode) to mapOf(
+                "follow_system" to key(R.string.key_night_mode_follow_system),
+                "always_on" to key(R.string.key_night_mode_always_on),
+                "always_off" to key(R.string.key_night_mode_always_off),
+            ),
+            key(R.string.key_keep_screen_on_when_in_foreground) to mapOf(
+                "off" to key(R.string.key_keep_screen_on_when_in_foreground_disabled),
+                "disabled" to key(R.string.key_keep_screen_on_when_in_foreground_disabled),
+                "all_pages" to key(R.string.key_keep_screen_on_when_in_foreground_all_pages),
+                "homepage_only" to key(R.string.key_keep_screen_on_when_in_foreground_homepage_only),
+            ),
+            key(R.string.key_root_mode) to mapOf(
+                "auto_detect" to key(R.string.key_root_mode_auto_detect),
+                "force_root" to key(R.string.key_root_mode_force_root),
+                "force_non_root" to key(R.string.key_root_mode_force_non_root),
+            ),
+            key(R.string.key_hidden_files) to mapOf(
+                "show" to key(R.string.key_hidden_files_show),
+                "not_show" to key(R.string.key_hidden_files_not_show),
+            ),
+            key(R.string.key_file_extensions) to mapOf(
+                "show_all" to key(R.string.key_file_extensions_show_all),
+                "not_show" to key(R.string.key_file_extensions_not_show),
+                "show_all_but_executable" to key(R.string.key_file_extensions_show_all_but_executable),
+            ),
+            key(R.string.key_documentation_source) to mapOf(
+                "local" to key(R.string.key_documentation_source_local),
+                "online" to key(R.string.key_documentation_source_online),
+            ),
+            key(R.string.key_app_language) to mapOf(
+                "auto" to key(R.string.key_app_language_auto),
+                "zh_hans" to key(R.string.key_app_language_zh_hans),
+                "zh_hant_hk" to key(R.string.key_app_language_zh_hant_hk),
+                "zh_hant_tw" to key(R.string.key_app_language_zh_hant_tw),
+                "en" to key(R.string.key_app_language_en),
+                "fr" to key(R.string.key_app_language_fr),
+                "es" to key(R.string.key_app_language_es),
+                "ja" to key(R.string.key_app_language_ja),
+                "ko" to key(R.string.key_app_language_ko),
+                "ru" to key(R.string.key_app_language_ru),
+                "ar" to key(R.string.key_app_language_ar),
+            ),
+            key(R.string.key_launcher_icon) to mapOf(
+                "adaptive" to key(R.string.key_launcher_icon_adaptive),
+                "transparent_background" to key(R.string.key_launcher_icon_transparent_background),
+            ),
+            key(R.string.key_editor_pinch_to_zoom_strategy) to mapOf(
+                "change_text_size" to key(R.string.key_editor_pinch_to_zoom_change_text_size),
+                "scale_view" to key(R.string.key_editor_pinch_to_zoom_scale_view),
+                "disable" to key(R.string.key_editor_pinch_to_zoom_disable),
+            ),
+            key(R.string.key_root_record_out_file_type) to mapOf(
+                "binary" to key(R.string.key_root_record_out_file_type_binary),
+                "js" to key(R.string.key_root_record_out_file_type_js),
+            ),
         )
     }
 
@@ -162,7 +245,8 @@ object FleetProfileApplier {
 
                 val value = profile.get(rawKey)
                 try {
-                    putValue(this, prefKey, value)
+                    val resolvedValue = resolveValue(prefKey, value)
+                    putValue(this, prefKey, resolvedValue)
                     applied++
                 } catch (e: Exception) {
                     skipped++
@@ -182,6 +266,14 @@ object FleetProfileApplier {
             return rawKey
         }
         return aliasToKey[rawKey]
+    }
+
+    private fun resolveValue(prefKey: String, value: Any?): Any? {
+        if (value !is String) {
+            return value
+        }
+        val valueAliases = valueAliasToKey[prefKey] ?: return value
+        return valueAliases[value] ?: value
     }
 
     private fun putValue(editor: SharedPreferences.Editor, key: String, value: Any?) {
