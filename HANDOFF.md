@@ -76,6 +76,14 @@ To publish a new build:
 3. Upload APKs to a GitHub release
 4. Push the version.properties commit
 
+## Known Bug — Drawer subtitle crash (unfixed)
+
+See `docs/fleet/SUBTITLE_CRASH_BUG.md` for full analysis.
+
+When `FleetProfileActivity` writes a `ListPreference` value whose internal key doesn't match the drawer's `R.array.keys_*` array, `DrawerFragment.onResume` crashes with `ArrayIndexOutOfBoundsException`. The fix should apply bounds checks in all `refreshSubtitle` overrides in `DrawerFragment.kt`.
+
+This is the highest-priority unfixed issue.
+
 ## Potential Next Steps
 
 - Use `FleetProfileApplier` internally at first launch (to seed defaults for headless users).
