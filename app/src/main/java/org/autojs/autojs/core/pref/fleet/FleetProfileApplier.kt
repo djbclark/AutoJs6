@@ -175,7 +175,17 @@ object FleetProfileApplier {
         val failedKeys: List<String>,
         val errors: List<String>,
         val message: String,
-    )
+    ) {
+        fun toJson(): JSONObject = JSONObject().apply {
+            put("success", this@Result.success)
+            put("applied_count", this@Result.appliedCount)
+            put("skipped_count", this@Result.skippedCount)
+            put("applied_keys", JSONArray(this@Result.appliedKeys))
+            put("failed_keys", JSONArray(this@Result.failedKeys))
+            put("errors", JSONArray(this@Result.errors))
+            put("message", this@Result.message)
+        }
+    }
 
     /**
      * Apply a fleet profile from a JSON string.

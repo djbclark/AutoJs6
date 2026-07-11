@@ -29,11 +29,10 @@ require fragile UI automation.
        org.autojs.autojs.core.pref.fleet.FleetProfileActivity
    ```
 
-3. The activity applies the preferences and exits. Result is shown as a short
-   Toast unless `-e silent true` is passed.
+3. The activity applies the preferences and exits. Result is delivered three
+   ways (all fire on every invocation):
 
-   For `startActivityForResult` callers, the result intent carries extras with
-   detailed apply status:
+   **a) Activity result intent** — for `startActivityForResult` callers:
 
    | Extra | Type | Description |
    |-------|------|-------------|
@@ -44,6 +43,29 @@ require fragile UI automation.
    | `result_failed_keys` | `String[]` | Key aliases that could not be written |
    | `result_errors` | `String[]` | Human-readable error messages |
    | `result_message` | `String` | Summary string (also shown as Toast) |
+
+   **b) Broadcast** — action `org.autojs.autojs6.action.FLEET_PROFILE_RESULT`
+   with the same extras as above. Any app with a registered receiver can
+   listen.
+
+   **c) JSON result file** — written to the path specified by `-e result_path`,
+   or by default alongside the profile file (e.g.
+   `/sdcard/Download/autojs6-fleet-result.json`), or falling back to
+   `/sdcard/autojs6-fleet-result.json`. The file contains:
+
+   ```json
+   {
+     "success": true,
+     "applied_count": 12,
+     "skipped_count": 0,
+     "applied_keys": ["foreground_service", "stable_mode", ...],
+     "failed_keys": [],
+     "errors": [],
+     "message": "Applied 12 preferences, skipped 0"
+   }
+   ```
+
+   Toast is shown unless `-e silent true` is passed.
 
 ## Profile format
 
