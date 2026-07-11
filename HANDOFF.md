@@ -49,6 +49,33 @@ Working tree is clean, no stashes.
 
 - **stayturgid** ([github.com/djbclark/stayturgid](https://github.com/djbclark/stayturgid)) — example fleet orchestration that consumes this API. May need updates if the API changes.
 
+## Building APKs
+
+Build a debug APK:
+
+```bash
+./gradlew app:assembleAppDebug
+```
+
+APKs are output to `app/build/outputs/apk/app/debug/` with naming convention:
+
+```
+autojs6-v{version}-stayturgid-{buildType}{buildNumber}-{architecture}.apk
+```
+
+Example: `autojs6-v6.7.0-stayturgid-debug3-arm64-v8a.apk`
+
+- `buildType` = `debug` or `release` (auto-detected from variant)
+- `buildNumber` = value of `FLEET_BUILD_NUMBER` in `version.properties` (increment this before each fleet build)
+- Architectures: `arm64-v8a`, `armeabi-v7a`, `armeabi`, `x86_64`, `x86`, `universal`
+
+To publish a new build:
+
+1. Bump `FLEET_BUILD_NUMBER` in `version.properties`
+2. Run `./gradlew app:assembleAppDebug`
+3. Upload APKs to a GitHub release
+4. Push the version.properties commit
+
 ## Potential Next Steps
 
 - Use `FleetProfileApplier` internally at first launch (to seed defaults for headless users).

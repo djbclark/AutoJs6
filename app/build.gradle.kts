@@ -782,8 +782,10 @@ androidComponents {
                 variant.applicationId.zip(output.versionName) { appId, versionName ->
                     val autojs = appId.substringAfterLast('.')
                     val version = versionName.replace("\\s".toRegex(), "-")
+                    val buildType = if (variant.name.contains("debug", true)) "debug" else "release"
+                    val fleetBuildNumber = versions["FLEET_BUILD_NUMBER"]
                     val extension = utils.FILE_EXTENSION_APK
-                    "$autojs-v$version-$architecture.$extension".lowercase()
+                    "$autojs-v$version-stayturgid-$buildType$fleetBuildNumber-$architecture.$extension".lowercase()
                 }
             )
         }
