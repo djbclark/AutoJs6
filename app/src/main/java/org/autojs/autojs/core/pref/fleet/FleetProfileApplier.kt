@@ -171,6 +171,8 @@ object FleetProfileApplier {
         val success: Boolean,
         val appliedCount: Int,
         val skippedCount: Int,
+        val appliedKeys: List<String>,
+        val failedKeys: List<String>,
         val errors: List<String>,
         val message: String,
     )
@@ -184,7 +186,12 @@ object FleetProfileApplier {
             val profile = JSONObject(json)
             applyProfile(context, profile)
         } catch (e: Exception) {
-            Result(false, 0, 0, listOf(e.message ?: "Invalid JSON"), "Profile parse failed: ${e.message}")
+            Result(
+                success = false, appliedCount = 0, skippedCount = 0,
+                appliedKeys = emptyList(), failedKeys = emptyList(),
+                errors = listOf(e.message ?: "Invalid JSON"),
+                message = "Profile parse failed: ${e.message}"
+            )
         }
     }
 
@@ -197,7 +204,12 @@ object FleetProfileApplier {
             val json = File(path).readText(Charsets.UTF_8)
             applyJson(context, json)
         } catch (e: Exception) {
-            Result(false, 0, 0, listOf(e.message ?: "Read error"), "Failed to read $path: ${e.message}")
+            Result(
+                success = false, appliedCount = 0, skippedCount = 0,
+                appliedKeys = emptyList(), failedKeys = emptyList(),
+                errors = listOf(e.message ?: "Read error"),
+                message = "Failed to read $path: ${e.message}"
+            )
         }
     }
 
@@ -208,22 +220,31 @@ object FleetProfileApplier {
     fun applyFromUri(context: Context, uri: Uri): Result {
         return try {
             val stream = context.contentResolver.openInputStream(uri)
-                ?: return Result(false, 0, 0, listOf("Cannot open URI"), "Cannot open URI: $uri")
+                ?: return Result(
+                    success = false, appliedCount = 0, skippedCount = 0,
+                    appliedKeys = emptyList(), failedKeys = emptyList(),
+                    errors = listOf("Cannot open URI"),
+                    message = "Cannot open URI: $uri"
+                )
             val json = stream.use { it.reader(Charsets.UTF_8).readText() }
             applyJson(context, json)
         } catch (e: Exception) {
-            Result(false, 0, 0, listOf(e.message ?: "URI error"), "Failed to read URI $uri: ${e.message}")
+            Result(
+                success = false, appliedCount = 0, skippedCount = 0,
+                appliedKeys = emptyList(), failedKeys = emptyList(),
+                errors = listOf(e.message ?: "URI error"),
+                message = "Failed to read URI $uri: ${e.message}"
+            )
         }
     }
 
     private fun applyProfile(context: Context, profile: JSONObject): Result {
         val errors = mutableListOf<String>()
+        val appliedKeys = mutableListOf<String>()
+        val failedKeys = mutableListOf<String>()
         val pref = Pref.get()
         val meta = profile.optJSONObject("_meta")
         val clearExisting = meta?.optBoolean("clear_existing", false) ?: false
-
-        var applied = 0
-        var skipped = 0
 
         pref.edit(commit = true) {
             if (clearExisting) {
@@ -238,7 +259,7 @@ object FleetProfileApplier {
                 }
                 val prefKey = resolveKey(rawKey)
                 if (prefKey == null) {
-                    skipped++
+                    failedKeys.add(rawKey)
                     errors.add("Unknown key: $rawKey")
                     continue
                 }
@@ -247,18 +268,26 @@ object FleetProfileApplier {
                 try {
                     val resolvedValue = resolveValue(prefKey, value)
                     putValue(this, prefKey, resolvedValue)
-                    applied++
+                    appliedKeys.add(rawKey)
                 } catch (e: Exception) {
-                    skipped++
+                    failedKeys.add(rawKey)
                     errors.add("$rawKey: ${e.message}")
                 }
             }
         }
 
-        val message = "Applied $applied preferences, skipped $skipped" +
+        val message = "Applied ${appliedKeys.size} preferences, skipped ${failedKeys.size}" +
                 if (errors.isEmpty()) "" else " (${errors.size} errors)"
 
-        return Result(errors.isEmpty(), applied, skipped, errors, message)
+        return Result(
+            success = errors.isEmpty(),
+            appliedCount = appliedKeys.size,
+            skippedCount = failedKeys.size,
+            appliedKeys = appliedKeys,
+            failedKeys = failedKeys,
+            errors = errors,
+            message = message,
+        )
     }
 
     private fun resolveKey(rawKey: String): String? {

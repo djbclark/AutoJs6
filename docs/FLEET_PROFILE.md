@@ -32,6 +32,19 @@ require fragile UI automation.
 3. The activity applies the preferences and exits. Result is shown as a short
    Toast unless `-e silent true` is passed.
 
+   For `startActivityForResult` callers, the result intent carries extras with
+   detailed apply status:
+
+   | Extra | Type | Description |
+   |-------|------|-------------|
+   | `result_success` | `boolean` | Whether all keys were applied |
+   | `result_applied_count` | `int` | Number of keys successfully written |
+   | `result_skipped_count` | `int` | Number of keys skipped (unknown or error) |
+   | `result_applied_keys` | `String[]` | Key aliases that were written |
+   | `result_failed_keys` | `String[]` | Key aliases that could not be written |
+   | `result_errors` | `String[]` | Human-readable error messages |
+   | `result_message` | `String` | Summary string (also shown as Toast) |
+
 ## Profile format
 
 Profiles are plain JSON objects. Each key maps to an AutoJs6 preference. The
