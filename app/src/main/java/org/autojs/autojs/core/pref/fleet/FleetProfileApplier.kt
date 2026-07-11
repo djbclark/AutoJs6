@@ -41,7 +41,7 @@ import java.io.FileInputStream
  */
 object FleetProfileApplier {
 
-    private const val KEY_PREFIX = "key_$_"
+    private const val KEY_PREFIX = "key_\$_"
 
     private val aliasToKey by lazy {
         mapOf(
