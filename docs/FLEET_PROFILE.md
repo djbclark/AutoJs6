@@ -29,8 +29,8 @@ require fragile UI automation.
        org.autojs.autojs.core.pref.fleet.FleetProfileActivity
    ```
 
-3. The activity applies the preferences and exits. Result is delivered three
-   ways (all fire on every invocation):
+3. The activity applies the preferences silently (no Toast) and exits.
+   Result is delivered four ways (all fire on every invocation):
 
    **a) Activity result intent** — for `startActivityForResult` callers:
 
@@ -42,7 +42,7 @@ require fragile UI automation.
    | `result_applied_keys` | `String[]` | Key aliases that were written |
    | `result_failed_keys` | `String[]` | Key aliases that could not be written |
    | `result_errors` | `String[]` | Human-readable error messages |
-   | `result_message` | `String` | Summary string (also shown as Toast) |
+   | `result_message` | `String` | Summary string |
 
    **b) Broadcast** — action `org.autojs.autojs6.action.FLEET_PROFILE_RESULT`
    with the same extras as above. Any app with a registered receiver can
@@ -65,7 +65,10 @@ require fragile UI automation.
    }
    ```
 
-   Toast is shown unless `-e silent true` is passed.
+   **d) Daily rotating log** — each invocation appends a JSON line to
+   `/sdcard/autojs6-fleet-YYYY-MM-DD.log`. The date in the filename changes
+   at midnight, so the log restarts each day naturally. Each line contains a
+   `timestamp` field plus the same fields as the result file.
 
 ## Profile format
 

@@ -185,6 +185,17 @@ object FleetProfileApplier {
             put("errors", JSONArray(this@Result.errors))
             put("message", this@Result.message)
         }
+
+        fun toLogLine(): String = JSONObject().apply {
+            put("timestamp", java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.US).format(java.util.Date()))
+            put("success", this@Result.success)
+            put("applied_count", this@Result.appliedCount)
+            put("skipped_count", this@Result.skippedCount)
+            put("applied_keys", JSONArray(this@Result.appliedKeys))
+            put("failed_keys", JSONArray(this@Result.failedKeys))
+            put("errors", JSONArray(this@Result.errors))
+            put("message", this@Result.message)
+        }.toString()
     }
 
     /**

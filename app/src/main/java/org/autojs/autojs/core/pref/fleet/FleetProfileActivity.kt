@@ -5,10 +5,12 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
-import android.widget.Toast
 import androidx.annotation.Nullable
 import org.json.JSONObject
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Entry point for applying a fleet/headless configuration profile without UI.
@@ -25,15 +27,15 @@ import java.io.File
  *
  * Input extras:
  *   - profile_path:  absolute path to a JSON profile on shared storage
- *   - silent:        if true, do not show result Toast
  *   - result_path:   override path for the JSON result file
  *                    (default: alongside profile or /sdcard/autojs6-fleet-result.json)
  *
- * Result delivery (all three fire on every invocation):
+ * Result delivery (all fire on every invocation):
  *   1. Activity result intent — extras listed below (startActivityForResult callers)
  *   2. Broadcast — action FLEET_PROFILE_RESULT with same extras
- *   3. JSON result file — written to result_path (default
- *      /sdcard/autojs6-fleet-result.json)
+ *   3. JSON result file — overwritten per invocation at result_path
+ *   4. Daily rotating log — appended as JSON lines to
+ *      /sdcard/autojs6-fleet-YYYY-MM-DD.log (resets at midnight)
  *
  * Result extras (on activity result intent AND broadcast):
  *   - result_success:       boolean
@@ -42,7 +44,7 @@ import java.io.File
  *   - result_applied_keys:   String[] — key aliases that were written
  *   - result_failed_keys:    String[] — key aliases that could not be written
  *   - result_errors:         String[] — human-readable error messages
- *   - result_message:        String  — summary string (also shown as Toast)
+ *   - result_message:        String  — summary string
  *
  * The activity is exported so fleet orchestrators (stayturgid, MDM, provisioning
  * tools) can call it before the user opens the app. Profile files should be
@@ -56,7 +58,6 @@ class FleetProfileActivity : Activity() {
         const val ACTION_FLEET_PROFILE_RESULT = "org.autojs.autojs6.action.FLEET_PROFILE_RESULT"
         const val EXTRA_PROFILE_PATH = "profile_path"
         const val EXTRA_RESULT_PATH = "result_path"
-        const val EXTRA_SILENT = "silent"
         const val EXTRA_RESULT_SUCCESS = "result_success"
         const val EXTRA_RESULT_APPLIED_COUNT = "result_applied_count"
         const val EXTRA_RESULT_SKIPPED_COUNT = "result_skipped_count"
@@ -66,21 +67,35 @@ class FleetProfileActivity : Activity() {
         const val EXTRA_RESULT_MESSAGE = "result_message"
 
         private const val DEFAULT_RESULT_FILENAME = "autojs6-fleet-result.json"
+        private const val LOG_DATE_FORMAT = "yyyy-MM-dd"
+        private const val LOG_TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ssXXX"
     }
 
     override fun onCreate(@Nullable savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val result = handleIntent(intent)
-        if (!intent.getBooleanExtra(EXTRA_SILENT, false)) {
-            Toast.makeText(this, result.message, Toast.LENGTH_LONG).show()
-        }
 
         val resultIntent = buildResultIntent(result)
         setResult(if (result.success) RESULT_OK else RESULT_CANCELED, resultIntent)
         sendBroadcast(resultIntent.setAction(ACTION_FLEET_PROFILE_RESULT))
         writeResultFile(result)
+        appendLog(result)
 
         finish()
+    }
+
+    private fun appendLog(result: FleetProfileApplier.Result) {
+        val file = resolveLogFile()
+        try {
+            file.parentFile?.mkdirs()
+            file.appendText(result.toLogLine() + "\n", Charsets.UTF_8)
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun resolveLogFile(): File {
+        val date = SimpleDateFormat(LOG_DATE_FORMAT, Locale.US).format(Date())
+        return File(Environment.getExternalStorageDirectory(), "autojs6-fleet-$date.log")
     }
 
     private fun handleIntent(intent: Intent): FleetProfileApplier.Result {
