@@ -12,6 +12,7 @@
 
 | Commit | Description |
 |--------|-------------|
+| `3877e0fa` | **Tests** FleetProfileApplierTest (18 tests) + HANDOFF.md update |
 | `0d0f76a3` | **Fix** versionName includes branch qualifier (`6.7.0-fleet-profile` matches tag) |
 | `67afc538` | **Feat** Unix-style log format with INFO/WARN/ERROR levels, daily rotation |
 | `248fef4d` | **Fix** code review cleanup — unused imports, deprecation, duplication |
@@ -79,7 +80,7 @@ Working tree clean, no stashes. 17 commits ahead of origin/master.
 ### Key Design Decisions
 
 - `valueAliasToKey` covers: timed_task_backend, scheduled_restart_backend, restart_strategy, night_mode, keep_screen_on_when_in_foreground, root_mode, hidden_files, file_extensions, documentation_source, app_language, launcher_icon, editor_pinch_to_zoom_strategy, root_record_out_file_type.
-- `aliasToKey` covers ~25 common preferences. Both maps are hardcoded (not yet driven from resources).
+- `aliasToKey` covers ~25 common preferences. Both maps are hardcoded (deliberately — compile-time safe, no runtime resource lookup overhead).
 - Drawer crash fix: bounds check at `DrawerFragment.kt:593` — `i in keys.indices` before array access.
 
 ## Releasing
@@ -128,9 +129,9 @@ All releases are published (not draft). The release tag is always `v6.7.0-fleet-
 
 See `docs/fleet/SUBTITLE_CRASH_BUG.md`. `DrawerFragment.refreshSubtitle` now checks `i in keys.indices` before array access.
 
-### Unfixed: No test coverage
+### Fixed: Test coverage added (commit `3877e0fa`)
 
-`FleetProfileApplier` has no unit tests. The alias maps are tested only manually via fleet profile deployment.
+`FleetProfileApplierTest.kt` at `app/src/androidTest/java/.../fleet/FleetProfileApplierTest.kt` with 18 tests covering JSON parsing, alias resolution, value aliases, error handling, Result serialization, and file I/O. Run on device via `./gradlew app:connectedAppDebugAndroidTest`.
 
 ## External References
 
@@ -138,8 +139,7 @@ See `docs/fleet/SUBTITLE_CRASH_BUG.md`. `DrawerFragment.refreshSubtitle` now che
 
 ## Potential Next Steps
 
-- Drive `valueAliasToKey` / `aliasToKey` from Android resource arrays instead of hardcoded Kotlin maps.
 - Accept custom `SharedPreferences` name in `FleetProfileApplier` for testing or multi-profile support.
-- Add unit tests for `FleetProfileApplier`.
 - Use `FleetProfileApplier` internally at first launch to seed defaults for headless users.
 - `LogBottomSheet` color resource fix (`9ad9f2c`) may need follow-up.
+- The `aliasToKey` / `valueAliasToKey` maps were left hardcoded (compile-time safe, fast); resource-driven approach was deemed over-engineering.
