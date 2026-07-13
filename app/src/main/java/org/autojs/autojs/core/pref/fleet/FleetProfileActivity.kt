@@ -2,11 +2,9 @@ package org.autojs.autojs.core.pref.fleet
 
 import android.app.Activity
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import androidx.annotation.Nullable
-import org.json.JSONObject
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -68,7 +66,6 @@ class FleetProfileActivity : Activity() {
 
         private const val DEFAULT_RESULT_FILENAME = "autojs6-fleet-result.json"
         private const val LOG_DATE_FORMAT = "yyyy-MM-dd"
-        private const val LOG_TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ssXXX"
     }
 
     override fun onCreate(@Nullable savedInstanceState: Bundle?) {
@@ -77,7 +74,7 @@ class FleetProfileActivity : Activity() {
 
         val resultIntent = buildResultIntent(result)
         setResult(if (result.success) RESULT_OK else RESULT_CANCELED, resultIntent)
-        sendBroadcast(resultIntent.setAction(ACTION_FLEET_PROFILE_RESULT))
+        sendBroadcast(resultIntent.setAction(ACTION_FLEET_PROFILE_RESULT), null)
         writeResultFile(result)
         appendLog(result)
 

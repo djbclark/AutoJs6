@@ -3,7 +3,6 @@ package org.autojs.autojs.core.pref.fleet
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
-import android.widget.Toast
 import androidx.core.content.edit
 import org.autojs.autojs.core.pref.Pref
 import org.autojs.autojs.util.StringUtils.key
@@ -11,7 +10,6 @@ import org.autojs.autojs6.R
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
-import java.io.FileInputStream
 
 /**
  * Applies a fleet/headless configuration profile to AutoJs6's default SharedPreferences.
@@ -186,15 +184,8 @@ object FleetProfileApplier {
             put("message", this@Result.message)
         }
 
-        fun toLogLine(): String = JSONObject().apply {
+        fun toLogLine(): String = toJson().apply {
             put("timestamp", java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.US).format(java.util.Date()))
-            put("success", this@Result.success)
-            put("applied_count", this@Result.appliedCount)
-            put("skipped_count", this@Result.skippedCount)
-            put("applied_keys", JSONArray(this@Result.appliedKeys))
-            put("failed_keys", JSONArray(this@Result.failedKeys))
-            put("errors", JSONArray(this@Result.errors))
-            put("message", this@Result.message)
         }.toString()
     }
 
@@ -205,7 +196,7 @@ object FleetProfileApplier {
     fun applyJson(context: Context, json: String): Result {
         return try {
             val profile = JSONObject(json)
-            applyProfile(context, profile)
+            applyProfile(profile)
         } catch (e: Exception) {
             Result(
                 success = false, appliedCount = 0, skippedCount = 0,
@@ -259,7 +250,7 @@ object FleetProfileApplier {
         }
     }
 
-    private fun applyProfile(context: Context, profile: JSONObject): Result {
+    private fun applyProfile(profile: JSONObject): Result {
         val errors = mutableListOf<String>()
         val appliedKeys = mutableListOf<String>()
         val failedKeys = mutableListOf<String>()
