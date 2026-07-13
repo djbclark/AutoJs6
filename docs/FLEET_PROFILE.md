@@ -67,8 +67,15 @@ require fragile UI automation.
 
    **d) Daily rotating log** — each invocation appends a JSON line to
    `/sdcard/autojs6-fleet-YYYY-MM-DD.log`. The date in the filename changes
-   at midnight, so the log restarts each day naturally. Each line contains a
-   `timestamp` field plus the same fields as the result file.
+   at midnight, so the log restarts each day naturally. Each line is a
+   Unix-style log entry:
+
+   ```
+   2026-07-11T22:15:30Z INFO  fleet_profile: applied=12 skipped=0 keys=foreground_service,stable_mode errors=0 message="Applied 12 preferences, skipped 0"
+   2026-07-11T22:16:00Z ERROR fleet_profile: applied=0 skipped=1 failed=bad_key errors=1 message="Applied 0 preferences, skipped 1 (1 errors)"
+   ```
+
+   Level is `INFO` (all success), `WARN` (partial), or `ERROR` (failure).
 
 ## Profile format
 

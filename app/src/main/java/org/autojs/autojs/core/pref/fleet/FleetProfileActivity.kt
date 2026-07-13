@@ -32,8 +32,9 @@ import java.util.Locale
  *   1. Activity result intent — extras listed below (startActivityForResult callers)
  *   2. Broadcast — action FLEET_PROFILE_RESULT with same extras
  *   3. JSON result file — overwritten per invocation at result_path
- *   4. Daily rotating log — appended as JSON lines to
- *      /sdcard/autojs6-fleet-YYYY-MM-DD.log (resets at midnight)
+ *   4. Daily rotating log — appended as Unix-style log lines to
+ *      /sdcard/autojs6-fleet-YYYY-MM-DD.log (resets at midnight).
+ *      Format: "TIMESTAMP LEVEL fleet_profile: applied=N skipped=N keys=... message=..."
  *
  * Result extras (on activity result intent AND broadcast):
  *   - result_success:       boolean

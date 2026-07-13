@@ -184,9 +184,27 @@ object FleetProfileApplier {
             put("message", this@Result.message)
         }
 
-        fun toLogLine(): String = toJson().apply {
-            put("timestamp", java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.US).format(java.util.Date()))
-        }.toString()
+        fun toLogLine(): String {
+            val ts = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).apply {
+                timeZone = java.util.TimeZone.getTimeZone("UTC")
+            }.format(java.util.Date())
+            val level = when {
+                success -> "INFO "
+                appliedCount > 0 -> "WARN "
+                else -> "ERROR"
+            }
+            val sb = StringBuilder().apply {
+                append(ts).append(' ').append(level).append(" fleet_profile: applied=").append(appliedCount)
+                append(" skipped=").append(skippedCount)
+                if (appliedKeys.isNotEmpty()) append(" keys=").append(appliedKeys.joinToString(","))
+                if (failedKeys.isNotEmpty()) append(" failed=").append(failedKeys.joinToString(","))
+                append(" errors=").append(errors.size)
+                append(" message=").append(quote(message))
+            }
+            return sb.toString()
+        }
+
+        private fun quote(s: String): String = "\"${s.replace("\\", "\\\\").replace("\"", "\\\"")}\""
     }
 
     /**
