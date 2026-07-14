@@ -49,6 +49,11 @@ import java.util.Locale
  * can call it before the user opens the app. Profile files should be
  * placed on shared storage; AutoJs6 must have READ_EXTERNAL_STORAGE or
  * MANAGE_EXTERNAL_STORAGE as needed.
+ *
+ * Security: this activity is exported with no caller permission check so
+ * any app can trigger it. It only writes AutoJs6's own SharedPreferences
+ * (not system settings) and writes result files constrained to the external
+ * storage directory. Profiles should come from trusted sources.
  */
 class FleetProfileActivity : Activity() {
 
@@ -141,18 +146,38 @@ class FleetProfileActivity : Activity() {
     }
 
     private fun resolveResultFile(): File {
-        intent.getStringExtra(EXTRA_RESULT_PATH)?.let { return File(EnvironmentUtils.normalizePath(it) ?: it) }
+        intent.getStringExtra(EXTRA_RESULT_PATH)?.let { return safeFile(it) }
         intent.getStringExtra(EXTRA_PROFILE_PATH)?.let { path ->
             val normalized = EnvironmentUtils.normalizePath(path) ?: path
             val parent = File(normalized).parentFile
             if (parent != null && parent.exists()) {
-                return File(parent, DEFAULT_RESULT_FILENAME)
+                return safeFile(File(parent, DEFAULT_RESULT_FILENAME).absolutePath)
             }
         }
         return File(
             EnvironmentUtils.externalStorageDirectory,
             DEFAULT_RESULT_FILENAME
         )
+    }
+
+    /**
+     * Resolve a path to a safe File within external storage.
+     * Falls back to external storage root if the path escapes the sandbox.
+     */
+    private fun safeFile(path: String): File {
+        val normalized = EnvironmentUtils.normalizePath(path) ?: path
+        val safeDir = try {
+            val canonical = File(normalized).canonicalPath
+            if (canonical.startsWith(EnvironmentUtils.externalStoragePath + "/")
+                || canonical == EnvironmentUtils.externalStoragePath) {
+                File(canonical)
+            } else {
+                null
+            }
+        } catch (_: Exception) {
+            null
+        }
+        return safeDir ?: File(EnvironmentUtils.externalStorageDirectory, DEFAULT_RESULT_FILENAME)
     }
 
 }
