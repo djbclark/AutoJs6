@@ -294,8 +294,11 @@ object FleetProfileApplier {
         val appliedKeys = mutableListOf<String>()
         val failedKeys = mutableListOf<String>()
         val meta = profile.optJSONObject("_meta")
-        // clear_existing wipes ALL SharedPreferences before applying. Use with care.
+        // clear_existing wipes ALL SharedPreferences before applying. Use with extreme care.
         val clearExisting = meta?.optBoolean("clear_existing", false) ?: false
+        if (clearExisting) {
+            Log.w("FleetProfile", "clear_existing is true — wiping ALL preferences before applying")
+        }
 
         prefs.edit(commit = true) {
             if (clearExisting) {
