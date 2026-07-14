@@ -77,15 +77,17 @@ object ScriptIntents {
 
     private fun normalizePath(path: String?): String? {
         if (path == null) return null
+        if (File(path).exists()) return path
         val externalPath = Environment.getExternalStorageDirectory().absolutePath
         if (externalPath == "/sdcard") return path
-        return path.replaceFirst(
+        val normalized = path.replaceFirst(
             Regex("^/sdcard(?=/|$)"),
             externalPath
         ).replaceFirst(
             Regex("^/mnt/sdcard(?=/|$)"),
             externalPath
         )
+        return if (normalized != path && File(normalized).exists()) normalized else path
     }
 
 }
