@@ -2,7 +2,6 @@ package org.autojs.autojs.external
 
 import android.content.Context
 import android.content.Intent
-import android.os.Environment
 import org.autojs.autojs.AutoJs
 import org.autojs.autojs.execution.ExecutionConfig
 import org.autojs.autojs.model.script.PathChecker
@@ -10,6 +9,7 @@ import org.autojs.autojs.script.JavaScriptFileSource
 import org.autojs.autojs.script.ScriptSource
 import org.autojs.autojs.script.SequenceScriptSource
 import org.autojs.autojs.script.StringScriptSource
+import org.autojs.autojs.util.EnvironmentUtils
 import org.autojs.autojs.util.WorkingDirectoryUtils
 import org.json.JSONException
 import org.json.JSONObject
@@ -34,7 +34,7 @@ object ScriptIntents {
 
     @JvmStatic
     fun handleIntent(context: Context?, intent: Intent) {
-        var path = normalizePath(getPath(intent))
+        var path = EnvironmentUtils.normalizePath(getPath(intent))
         var script = intent.getStringExtra(EXTRA_KEY_PRE_EXECUTE_SCRIPT)
 
         if (intent.hasExtra(EXTRA_KEY_JSON)) {
@@ -74,20 +74,5 @@ object ScriptIntents {
     }
 
     private fun getPath(intent: Intent) = intent.data?.path ?: intent.getStringExtra(EXTRA_KEY_PATH)
-
-    private fun normalizePath(path: String?): String? {
-        if (path == null) return null
-        if (File(path).exists()) return path
-        val externalPath = Environment.getExternalStorageDirectory().absolutePath
-        if (externalPath == "/sdcard") return path
-        val normalized = path.replaceFirst(
-            Regex("^/sdcard(?=/|$)"),
-            externalPath
-        ).replaceFirst(
-            Regex("^/mnt/sdcard(?=/|$)"),
-            externalPath
-        )
-        return if (normalized != path && File(normalized).exists()) normalized else path
-    }
 
 }

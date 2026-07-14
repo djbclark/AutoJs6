@@ -1,18 +1,32 @@
 package org.autojs.autojs.core.pref.fleet
 
+import android.content.Context
 import androidx.test.platform.app.InstrumentationRegistry
-import org.json.JSONArray
-import org.json.JSONObject
 import org.junit.Assert.*
+import org.junit.Before
 import org.junit.Test
 
+/**
+ * Tests for FleetProfileApplier running on an Android device.
+ *
+ * Uses a dedicated test SharedPreferences instance to avoid modifying the app's
+ * real preferences. Each test cleans up after itself.
+ */
 class FleetProfileApplierTest {
 
-    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+    private val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
+    private val prefs by lazy {
+        context.getSharedPreferences("test_fleet_profile", Context.MODE_PRIVATE)
+    }
+
+    @Before
+    fun setUp() {
+        prefs.edit().clear().commit()
+    }
 
     @Test
     fun applyJson_appliesBoolean() {
-        val result = FleetProfileApplier.applyJson(context, """{"foreground_service": true}""")
+        val result = FleetProfileApplier.applyJson(context, """{"foreground_service": true}""", prefs)
         assertTrue("expected success", result.success)
         assertEquals(1, result.appliedCount)
         assertEquals(0, result.skippedCount)
@@ -21,7 +35,7 @@ class FleetProfileApplierTest {
 
     @Test
     fun applyJson_appliesString() {
-        val result = FleetProfileApplier.applyJson(context, """{"restart_strategy": "quick"}""")
+        val result = FleetProfileApplier.applyJson(context, """{"restart_strategy": "quick"}""", prefs)
         assertTrue(result.success)
         assertEquals(1, result.appliedCount)
         assertEquals(listOf("restart_strategy"), result.appliedKeys)
@@ -35,7 +49,7 @@ class FleetProfileApplierTest {
             "stable_mode": true,
             "guard_mode": true
         }"""
-        val result = FleetProfileApplier.applyJson(context, json)
+        val result = FleetProfileApplier.applyJson(context, json, prefs)
         assertTrue(result.success)
         assertEquals(4, result.appliedCount)
         assertEquals(4, result.appliedKeys.size)
@@ -44,21 +58,21 @@ class FleetProfileApplierTest {
     @Test
     fun applyJson_acceptsRawKey() {
         val d = "${'$'}"
-        val result = FleetProfileApplier.applyJson(context, """{"key_${d}_foreground_service": true}""")
+        val result = FleetProfileApplier.applyJson(context, """{"key_${d}_foreground_service": true}""", prefs)
         assertTrue(result.success)
         assertEquals(1, result.appliedCount)
     }
 
     @Test
     fun applyJson_resolvesValueAlias() {
-        val result = FleetProfileApplier.applyJson(context, """{"timed_task_backend": "alarm"}""")
+        val result = FleetProfileApplier.applyJson(context, """{"timed_task_backend": "alarm"}""", prefs)
         assertTrue("expected success", result.success)
         assertEquals(1, result.appliedCount)
     }
 
     @Test
     fun applyJson_unknownKey_skipped() {
-        val result = FleetProfileApplier.applyJson(context, """{"nonexistent_key": true}""")
+        val result = FleetProfileApplier.applyJson(context, """{"nonexistent_key": true}""", prefs)
         assertFalse("expected failure", result.success)
         assertEquals(0, result.appliedCount)
         assertEquals(1, result.skippedCount)
@@ -67,7 +81,7 @@ class FleetProfileApplierTest {
 
     @Test
     fun applyJson_invalidJson_returnsError() {
-        val result = FleetProfileApplier.applyJson(context, """{invalid""")
+        val result = FleetProfileApplier.applyJson(context, """{invalid""", prefs)
         assertFalse(result.success)
         assertEquals(0, result.appliedCount)
         assertTrue(result.errors.first().contains("Invalid JSON"))
@@ -79,32 +93,32 @@ class FleetProfileApplierTest {
             "_meta": {"name": "test"},
             "foreground_service": true
         }"""
-        val result = FleetProfileApplier.applyJson(context, json)
+        val result = FleetProfileApplier.applyJson(context, json, prefs)
         assertTrue(result.success)
         assertEquals(1, result.appliedCount)
     }
 
     @Test
     fun applyJson_clearExisting_clearsBeforeApply() {
-        FleetProfileApplier.applyJson(context, """{"foreground_service": true}""")
+        FleetProfileApplier.applyJson(context, """{"foreground_service": true}""", prefs)
         val result = FleetProfileApplier.applyJson(context, """{
             "_meta": {"clear_existing": true},
             "stable_mode": true
-        }""")
+        }""", prefs)
         assertTrue(result.success)
         assertEquals(1, result.appliedCount)
     }
 
     @Test
     fun applyJson_appliesInt() {
-        val result = FleetProfileApplier.applyJson(context, """{"editor_text_size": 18}""")
+        val result = FleetProfileApplier.applyJson(context, """{"editor_text_size": 18}""", prefs)
         assertTrue(result.success)
         assertEquals(1, result.appliedCount)
     }
 
     @Test
     fun applyJson_appliesFloat() {
-        val result = FleetProfileApplier.applyJson(context, """{"screen_capture_request_delay": 0.5}""")
+        val result = FleetProfileApplier.applyJson(context, """{"screen_capture_request_delay": 0.5}""", prefs)
         assertTrue(result.success)
         assertEquals(1, result.appliedCount)
     }
@@ -112,7 +126,7 @@ class FleetProfileApplierTest {
     @Test
     fun applyJson_appliesStringArray() {
         val json = """{"file_extensions": ["js", "jsx"]}"""
-        val result = FleetProfileApplier.applyJson(context, json)
+        val result = FleetProfileApplier.applyJson(context, json, prefs)
         assertTrue(result.success)
         assertEquals(1, result.appliedCount)
     }

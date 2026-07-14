@@ -3,6 +3,8 @@ package org.autojs.autojs.core.pref.fleet
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
+import android.util.Log
+import androidx.annotation.VisibleForTesting
 import androidx.core.content.edit
 import org.autojs.autojs.core.pref.Pref
 import org.autojs.autojs.util.StringUtils.key
@@ -208,13 +210,32 @@ object FleetProfileApplier {
     }
 
     /**
-     * Apply a fleet profile from a JSON string.
+     * Apply a fleet profile from a JSON string, using the default SharedPreferences.
      */
     @JvmStatic
     fun applyJson(context: Context, json: String): Result {
         return try {
             val profile = JSONObject(json)
-            applyProfile(profile)
+            applyProfile(Pref.get(), profile)
+        } catch (e: Exception) {
+            Result(
+                success = false, appliedCount = 0, skippedCount = 0,
+                appliedKeys = emptyList(), failedKeys = emptyList(),
+                errors = listOf(e.message ?: "Invalid JSON"),
+                message = "Profile parse failed: ${e.message}"
+            )
+        }
+    }
+
+    /**
+     * Apply a fleet profile from a JSON object to the given SharedPreferences.
+     * Visible for testing, so callers can provide a dedicated SharedPreferences instance.
+     */
+    @VisibleForTesting
+    @JvmStatic
+    fun applyJson(context: Context, json: String, prefs: SharedPreferences): Result {
+        return try {
+            applyProfile(prefs, JSONObject(json))
         } catch (e: Exception) {
             Result(
                 success = false, appliedCount = 0, skippedCount = 0,
@@ -268,15 +289,15 @@ object FleetProfileApplier {
         }
     }
 
-    private fun applyProfile(profile: JSONObject): Result {
+    private fun applyProfile(prefs: SharedPreferences, profile: JSONObject): Result {
         val errors = mutableListOf<String>()
         val appliedKeys = mutableListOf<String>()
         val failedKeys = mutableListOf<String>()
-        val pref = Pref.get()
         val meta = profile.optJSONObject("_meta")
+        // clear_existing wipes ALL SharedPreferences before applying. Use with care.
         val clearExisting = meta?.optBoolean("clear_existing", false) ?: false
 
-        pref.edit(commit = true) {
+        prefs.edit(commit = true) {
             if (clearExisting) {
                 clear()
             }
@@ -332,7 +353,10 @@ object FleetProfileApplier {
             return value
         }
         val valueAliases = valueAliasToKey[prefKey] ?: return value
-        return valueAliases[value] ?: value
+        return valueAliases[value] ?: run {
+            Log.w("FleetProfile", "Unrecognized value '$value' for key '$prefKey'; passing through as-is")
+            value
+        }
     }
 
     private fun putValue(editor: SharedPreferences.Editor, key: String, value: Any?) {

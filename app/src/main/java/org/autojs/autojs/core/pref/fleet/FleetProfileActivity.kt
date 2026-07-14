@@ -3,8 +3,8 @@ package org.autojs.autojs.core.pref.fleet
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.os.Environment
 import androidx.annotation.Nullable
+import org.autojs.autojs.util.EnvironmentUtils
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -93,13 +93,13 @@ class FleetProfileActivity : Activity() {
 
     private fun resolveLogFile(): File {
         val date = SimpleDateFormat(LOG_DATE_FORMAT, Locale.US).format(Date())
-        return File(Environment.getExternalStorageDirectory(), "autojs6-fleet-$date.log")
+        return File(EnvironmentUtils.externalStorageDirectory, "autojs6-fleet-$date.log")
     }
 
     private fun handleIntent(intent: Intent): FleetProfileApplier.Result {
         return try {
             val data = intent.data
-            val path = normalizePath(intent.getStringExtra(EXTRA_PROFILE_PATH))
+            val path = EnvironmentUtils.normalizePath(intent.getStringExtra(EXTRA_PROFILE_PATH))
 
             when {
                 data != null -> FleetProfileApplier.applyFromUri(this, data)
@@ -141,33 +141,18 @@ class FleetProfileActivity : Activity() {
     }
 
     private fun resolveResultFile(): File {
-        intent.getStringExtra(EXTRA_RESULT_PATH)?.let { return File(normalizePath(it) ?: it) }
+        intent.getStringExtra(EXTRA_RESULT_PATH)?.let { return File(EnvironmentUtils.normalizePath(it) ?: it) }
         intent.getStringExtra(EXTRA_PROFILE_PATH)?.let { path ->
-            val normalized = normalizePath(path) ?: path
+            val normalized = EnvironmentUtils.normalizePath(path) ?: path
             val parent = File(normalized).parentFile
             if (parent != null && parent.exists()) {
                 return File(parent, DEFAULT_RESULT_FILENAME)
             }
         }
         return File(
-            Environment.getExternalStorageDirectory(),
+            EnvironmentUtils.externalStorageDirectory,
             DEFAULT_RESULT_FILENAME
         )
-    }
-
-    private fun normalizePath(path: String?): String? {
-        if (path == null) return null
-        if (java.io.File(path).exists()) return path
-        val externalPath = Environment.getExternalStorageDirectory().absolutePath
-        if (externalPath == "/sdcard") return path
-        val normalized = path.replaceFirst(
-            Regex("^/sdcard(?=/|$)"),
-            externalPath
-        ).replaceFirst(
-            Regex("^/mnt/sdcard(?=/|$)"),
-            externalPath
-        )
-        return if (normalized != path && java.io.File(normalized).exists()) normalized else path
     }
 
 }
