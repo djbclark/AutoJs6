@@ -785,7 +785,7 @@ androidComponents {
                     val buildType = if (variant.name.contains("debug", true)) "debug" else "release"
                     val fleetBuildNumber = versions["FLEET_BUILD_NUMBER"] ?: "0"
                     val extension = utils.FILE_EXTENSION_APK
-                    "$autojs-v$version-stayturgid-$buildType$fleetBuildNumber-$architecture.$extension".lowercase()
+                    "$autojs-v$version-$buildType$fleetBuildNumber-$architecture.$extension".lowercase()
                 }
             )
         }

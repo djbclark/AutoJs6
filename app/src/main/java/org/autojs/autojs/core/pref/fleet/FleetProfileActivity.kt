@@ -45,8 +45,8 @@ import java.util.Locale
  *   - result_errors:         String[] — human-readable error messages
  *   - result_message:        String  — summary string
  *
- * The activity is exported so fleet orchestrators (stayturgid, MDM, provisioning
- * tools) can call it before the user opens the app. Profile files should be
+ * The activity is exported so fleet orchestrators, MDM, or provisioning tools
+ * can call it before the user opens the app. Profile files should be
  * placed on shared storage; AutoJs6 must have READ_EXTERNAL_STORAGE or
  * MANAGE_EXTERNAL_STORAGE as needed.
  */
