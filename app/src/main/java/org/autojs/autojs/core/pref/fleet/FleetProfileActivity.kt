@@ -99,7 +99,7 @@ class FleetProfileActivity : Activity() {
     private fun handleIntent(intent: Intent): FleetProfileApplier.Result {
         return try {
             val data = intent.data
-            val path = intent.getStringExtra(EXTRA_PROFILE_PATH)
+            val path = normalizePath(intent.getStringExtra(EXTRA_PROFILE_PATH))
 
             when {
                 data != null -> FleetProfileApplier.applyFromUri(this, data)
@@ -141,9 +141,10 @@ class FleetProfileActivity : Activity() {
     }
 
     private fun resolveResultFile(): File {
-        intent.getStringExtra(EXTRA_RESULT_PATH)?.let { return File(it) }
+        intent.getStringExtra(EXTRA_RESULT_PATH)?.let { return File(normalizePath(it) ?: it) }
         intent.getStringExtra(EXTRA_PROFILE_PATH)?.let { path ->
-            val parent = File(path).parentFile
+            val normalized = normalizePath(path) ?: path
+            val parent = File(normalized).parentFile
             if (parent != null && parent.exists()) {
                 return File(parent, DEFAULT_RESULT_FILENAME)
             }
@@ -151,6 +152,19 @@ class FleetProfileActivity : Activity() {
         return File(
             Environment.getExternalStorageDirectory(),
             DEFAULT_RESULT_FILENAME
+        )
+    }
+
+    private fun normalizePath(path: String?): String? {
+        if (path == null) return null
+        val externalPath = Environment.getExternalStorageDirectory().absolutePath
+        if (externalPath == "/sdcard") return path
+        return path.replaceFirst(
+            Regex("^/sdcard(?=/|$)"),
+            externalPath
+        ).replaceFirst(
+            Regex("^/mnt/sdcard(?=/|$)"),
+            externalPath
         )
     }
 

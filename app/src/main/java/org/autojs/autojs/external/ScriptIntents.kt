@@ -2,6 +2,7 @@ package org.autojs.autojs.external
 
 import android.content.Context
 import android.content.Intent
+import android.os.Environment
 import org.autojs.autojs.AutoJs
 import org.autojs.autojs.execution.ExecutionConfig
 import org.autojs.autojs.model.script.PathChecker
@@ -33,7 +34,7 @@ object ScriptIntents {
 
     @JvmStatic
     fun handleIntent(context: Context?, intent: Intent) {
-        var path = getPath(intent)
+        var path = normalizePath(getPath(intent))
         var script = intent.getStringExtra(EXTRA_KEY_PRE_EXECUTE_SCRIPT)
 
         if (intent.hasExtra(EXTRA_KEY_JSON)) {
@@ -73,5 +74,18 @@ object ScriptIntents {
     }
 
     private fun getPath(intent: Intent) = intent.data?.path ?: intent.getStringExtra(EXTRA_KEY_PATH)
+
+    private fun normalizePath(path: String?): String? {
+        if (path == null) return null
+        val externalPath = Environment.getExternalStorageDirectory().absolutePath
+        if (externalPath == "/sdcard") return path
+        return path.replaceFirst(
+            Regex("^/sdcard(?=/|$)"),
+            externalPath
+        ).replaceFirst(
+            Regex("^/mnt/sdcard(?=/|$)"),
+            externalPath
+        )
+    }
 
 }
