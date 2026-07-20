@@ -170,14 +170,38 @@ class AccessibilityTool(private val context: Context? = null) {
         else -> false
     }
 
+    /**
+     * Ensure the accessibility service is **bound** (instance present), not merely listed
+     * in Settings.
+     *
+     * Android can leave a service "enabled" in `enabled_accessibility_services` while
+     * `onServiceConnected` never ran (process death, OEM freezers, multi-service lists).
+     * That sticky state is [isMalfunctioning]. Prefer a privileged stop→start cycle
+     * ([restartService]); if unavailable, open Accessibility settings and tell the user
+     * to toggle OFF then ON.
+     */
     @ScriptInterface
     fun ensureService() {
         if (isRunning()) return
+
+        // Sticky / malfunctioning: listed in settings, live instance missing.
+        if (isMalfunctioning()) {
+            Log.w(TAG, "a11y listed in settings but not bound; attempting restartService")
+            if (restartService(false) && AccessibilityService.waitForStarted()) {
+                if (isRunning()) return
+            }
+            ViewUtils.showToast(mContext, R.string.text_a11y_toggle_off_then_on, true)
+            launchSettings(showGuideMessage = false)
+            if (AccessibilityService.waitForStarted()) return
+            throw ScriptException(mContext.getString(R.string.text_a11y_service_enabled_but_not_running))
+        }
+
         if (startServiceWithConvenientWaysIfPossibleAndWaitFor()) return
         launchSettings()
         if (AccessibilityService.waitForStarted()) return
         when {
-            !hasService() -> throw ScriptException(mContext.getString(R.string.text_a11y_service_enabled_but_not_running))
+            isMalfunctioning() || (hasService() && !hasInstance()) ->
+                throw ScriptException(mContext.getString(R.string.text_a11y_service_enabled_but_not_running))
             else -> throw ScriptException(mContext.getString(R.string.error_no_accessibility_permission))
         }
     }
@@ -187,11 +211,19 @@ class AccessibilityTool(private val context: Context? = null) {
     @ScriptInterface
     fun ensureServiceOperational(timeout: Long = DEFAULT_A11Y_SERVICE_START_TIMEOUT) {
         if (isOperational()) return
+        // Malfunctioning first: rebind before waiting for operational state.
+        if (isMalfunctioning()) {
+            ensureService()
+            if (isOperational()) return
+            AccessibilityService.waitForOperational(timeout)
+            if (isOperational()) return
+        }
         startServiceAndWaitForOperational(timeout)
         if (isOperational()) return
         when {
-            !hasService() -> throw ScriptException(mContext.getString(R.string.text_a11y_service_enabled_but_not_running))
-            !hasInstance() -> throw ScriptException(mContext.getString(R.string.text_a11y_service_enabled_but_not_running))
+            isMalfunctioning() || (hasService() && !hasInstance()) ->
+                throw ScriptException(mContext.getString(R.string.text_a11y_service_enabled_but_not_running))
+            !hasService() -> throw ScriptException(mContext.getString(R.string.error_no_accessibility_permission))
             else -> throw ScriptException(mContext.getString(R.string.error_no_accessibility_permission))
         }
     }
