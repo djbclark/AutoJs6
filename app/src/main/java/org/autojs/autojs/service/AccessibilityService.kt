@@ -44,8 +44,9 @@ open class AccessibilityService(final override val context: Context) : ServiceIt
     }
 
     override fun onToggleSuccess() {
-        if (mA11yTool.hasService() && !mA11yTool.isRunning()) {
-            ViewUtils.showToast(context, R.string.text_a11y_service_enabled_but_not_running, true)
+        if (mA11yTool.isMalfunctioning()) {
+            // Settings switch ON but service not bound — classic Android sticky a11y state.
+            ViewUtils.showToast(context, R.string.text_a11y_toggle_off_then_on, true)
         }
         super.onToggleSuccess()
     }

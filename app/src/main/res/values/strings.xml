@@ -750,7 +750,8 @@
     <string name="term_internal_strorage">Internal Storage</string>
     <string name="text_a11y_service">Accessibility service</string>
     <string name="text_a11y_service_description">Required by the script automatic operation (click, long press, slide, etc.).</string>
-    <string name="text_a11y_service_enabled_but_not_running">Accessibility service enabled but not running (Re-enable or reboot the device)</string>
+    <string name="text_a11y_service_enabled_but_not_running">Accessibility service enabled but not running — turn AutoJs6 OFF then ON in Settings → Accessibility (or reboot)</string>
+    <string name="text_a11y_toggle_off_then_on">AutoJs6 accessibility is stuck (ON in Settings but not bound). Open Accessibility → AutoJs6, turn OFF then ON, then re-run the script.</string>
     <string name="text_a11y_service_may_be_needed">Accessibility service may be needed</string>
     <string name="text_aborting" tools:ignore="TypographyEllipsis">Aborting...</string>
     <string name="text_about">About</string>

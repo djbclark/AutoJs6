@@ -22,9 +22,13 @@ public class AccessibilityBridgeImpl extends AccessibilityBridge {
 
     @Override
     public void ensureServiceStarted(boolean isForcibleRestart) {
+        // Forcible restart, or sticky "enabled but not bound" (isMalfunctioning):
+        // prefer stop→start rebind over a no-op when Settings already lists us.
         if (isForcibleRestart && mA11yTool.hasService()) {
-            mA11yTool.stopService(true);
+            mA11yTool.stopService(false);
             Log.d(TAG, "isForcibleRestart");
+        } else if (mA11yTool.isMalfunctioning()) {
+            Log.w(TAG, "a11y malfunctioning (enabled in settings, not bound); ensureService will rebind");
         }
         mA11yTool.ensureService();
     }

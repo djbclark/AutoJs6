@@ -472,7 +472,8 @@
     <string name="term_internal_strorage">内部存储</string>
     <string name="text_a11y_service">无障碍服务</string>
     <string name="text_a11y_service_description">脚本自动操作 (点击/长按/滑动等) 所需</string>
-    <string name="text_a11y_service_enabled_but_not_running">无障碍服务已启用但未运行 (尝试重新启用或重启设备)</string>
+    <string name="text_a11y_service_enabled_but_not_running">无障碍服务已启用但未运行 — 请在 设置 → 无障碍 → AutoJs6 中先关闭再打开 (或重启设备)</string>
+    <string name="text_a11y_toggle_off_then_on">AutoJs6 无障碍处于卡住状态 (设置中为开启但服务未绑定)。请打开 无障碍 → AutoJs6, 先关闭再打开, 然后重新运行脚本。</string>
     <string name="text_a11y_service_may_be_needed">可能需要启用无障碍服务</string>
     <string name="text_aborting" tools:ignore="TypographyEllipsis">正在中止...</string>
     <string name="text_about">关于</string>
