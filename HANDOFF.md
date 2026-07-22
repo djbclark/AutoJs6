@@ -125,6 +125,22 @@ All releases are published (not draft). The release tag is always `v6.7.0-fleet-
 
 ## Known Issues
 
+### HIGH PRIORITY, unresolved: `jvm-npm.js` redeclaration crash across sibling requires
+
+`app/src/main/assets/modules/jvm-npm.js`'s rewritten `Module._load` dropped upstream jvm-npm's `new Function(exports, module, require, __filename, __dirname, body)` per-module isolation wrapper in favor of delegating to `NativeRequire.require(file)` (this app's own installed `commonjs.module.Require`, via `RhinoJavaScriptEngine.initRequireBuilder()`). Two required files that each declare a top-level `const`/`let` binding under the same name for a shared dependency (`const log = require("./log.js")`, say) crash the instant both load:
+
+```
+TypeError: redeclaration of var log. (jvm-npm.js#67)
+```
+
+Confirmed on-device (Pixel 7a). Root-cause investigation, minimal repro, and a working static-analysis workaround: https://github.com/djbclark/autojs6-typescript/tree/main/examples/broken/01-redeclaration
+
+**This is entirely our own change, not an upstream jvm-npm limitation.** Checked upstream jvm-npm's source directly: `Module._load` there *always* uses the Function-wrapper for every successfully-resolved file — `NativeRequire.require` upstream is used in exactly one place, as a not-found/native-module fallback inside `Require()`'s `if (!file)` branch, never as a substitute for `Module._load`'s isolation. Our rewrite repurposed that fallback into the entire primary file-loading path on our own; there's no upstream design ambiguity to resolve.
+
+Reported upstream: https://github.com/SuperMonster003/AutoJs6/issues/564 (a cross-filing on jvm-npm's own tracker was retracted once the above was confirmed — see the issue's comments).
+
+Fix candidates: restore the Function-wrapper isolation in `Module._load` for file-based modules (matching upstream jvm-npm), or otherwise verify the `commonjs.module.Require` delegation path actually isolates `const`/`let` correctly and fix if not.
+
 ### Fixed: Drawer subtitle crash (commit `bcbf4390`)
 
 See `docs/fleet/SUBTITLE_CRASH_BUG.md`. `DrawerFragment.refreshSubtitle` now checks `i in keys.indices` before array access.
@@ -135,7 +151,8 @@ See `docs/fleet/SUBTITLE_CRASH_BUG.md`. `DrawerFragment.refreshSubtitle` now che
 
 ## External References
 
-- **stayturgid** (`github.com/djbclark/stayturgid`) — fleet orchestration consuming this API. Uses `am start` fire-and-forget. Contains Shizuku catastrophic recovery watchdog (`docs/adr/003-shizuku-catastrophic-recovery.md`).
+- **stayturgid** (`github.com/djbclark/stayturgid`) — fleet orchestration consuming this API. Uses `am start` fire-and-forget. Contains Shizuku catastrophic recovery watchdog (`docs/adr/003-shizuku-catastrophic-recovery.md`). Hit the jvm-npm redeclaration bug above in real multi-file TypeScript-compiled usage (`docs/architecture/components/autojs6.md`, "Rhino JS-engine gotchas").
+- **autojs6-typescript** (`github.com/djbclark/autojs6-typescript`) — fork-agnostic TypeScript/Rhino gotcha catalog + verification toolkit; owns the canonical writeup and workaround for the jvm-npm redeclaration bug above.
 
 ## Potential Next Steps
 
